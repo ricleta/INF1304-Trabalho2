@@ -23,11 +23,6 @@ def lambda_handler(event, context):
         }
 
     print(f"Passei o try, car_model = {car_model}, car_year = {car_year}")
-    
-    # Look for any user that might be waiting for this car
-    # response = userTable.scan(
-    #     FilterExpression=Attr('car_name').eq(car_model) & Attr('car_year').eq(car_year)
-    # )
 
     response = userTable.scan()
     print(f"{response['Count']} users are waiting for the car {car_model} {car_year}.")
