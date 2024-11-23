@@ -12,18 +12,20 @@ def lambda_handler(event, context):
     # Show the incoming event in the debug log
     print("Event received by Lambda function: " + json.dumps(event, indent=2))
     
+    log = json.loads(event['body'])
     # Parse the event body to get the parameters
-    body = json.loads(event['body'])
-    car_model = body.get('car_model')
-    car_year = body.get('car_year')
+    car_model = log.get('car_model')
+    car_year = log.get('car_year')
+    email = log.get('email')
 
-    if not car_model or not car_year:
+    if not car_model or not car_year or not email:
         return {
             'statusCode': 400,
             'body': json.dumps({
-                'message': 'Invalid car model or year.',
+                'message': 'Invalid car model or year or email.',
                 'car_model': car_model,
-                'car_year': car_year
+                'car_year': car_year,
+                'email': email
             })
         }
 
@@ -56,8 +58,15 @@ def lambda_handler(event, context):
                         TopicArn=snsTopicArn,
                         Message=message,
                         Subject='Car Availability Alert!',
-                        MessageStructure='raw'
+                        MessageStructure='raw',
+                        MessageAttributes={
+                            'recipient': {
+                                'DataType': 'String',
+                                'StringValue': str(email)
+                            }
+                        }
                     )
+                        
                 except boto3.exceptions.Boto3Error as e:
                     print(f"Error sending SNS message: {e}")
                     return {
@@ -65,7 +74,11 @@ def lambda_handler(event, context):
                         'body': json.dumps(f"Error sending SNS message: {str(e)}")
                     }
             else:
-                print(f"The car {car_model} {car_year} is not available.")
+                message = f"Sorry, we don't have a {car_model} {car_year} in our inventory."
+                return {
+                    'statusCode': 404,
+                    'body': json.dumps(message)
+                }
     
     except pymysql.MySQLError as e:
         print(f"Error connecting to MySQL: {e}")
